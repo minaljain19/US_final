@@ -1,5 +1,6 @@
 const http = require("http");
 const WebSocket = require("ws");
+const ngrok = require("ngrok");
 const VoiceResponse = require("twilio").twiml.VoiceResponse;
 const express = require("express");
 const app = express();
@@ -44,6 +45,7 @@ app.get("/user", async (req, res) => {
     res.status(400).send(e);
   }
 });
+
 app.get("/api/get-twilio-token", (req, res) => {
   const client = twilio(accountSid, authToken);
   const token = new AccessToken(accountSid, sid, secret, {
@@ -58,20 +60,7 @@ app.get("/api/get-twilio-token", (req, res) => {
   });
   token.addGrant(grant);
   console.log("sd", token.toJwt());
-  // client.calls.create(
-  //   {
-  //     url: "http://demo.twilio.com/docs/voice.xml",
-  //     to: "+12054190332",
-  //     from: "+15188726700",
-  //   },
-  //   function (err, call) {
-  //     if (err) {
-  //       console.log(err);
-  //     } else {
-  //       console.log(call.sid);
-  //     }
-  //   }
-  // );
+
   res.json({ token: token.toJwt() });
 });
 app.post("/login", async (req, res) => {
@@ -120,9 +109,16 @@ app.post("/user", async (req, res) => {
 
 app.post("/api/make-call", async (req, res) => {
   try {
+    console.log("call init");
     const { toNumber, fromNumber } = req.body;
     const twiml = new VoiceResponse();
     twiml.say("Hello! This is a sample call using TwiML.");
+    twiml.play(
+      {
+        loop: 10,
+      },
+      "https://api.twilio.com/cowbell.mp3"
+    );
     twiml.dial(
       {
         callerId: fromNumber,
@@ -139,3 +135,18 @@ app.post("/api/make-call", async (req, res) => {
 app.listen(port, () => {
   console.log("listen to server");
 });
+
+// client.calls.create(
+//   {
+//     url: "http://demo.twilio.com/docs/voice.xml",
+//     to: "+12056834779",
+//     from: "+15188726700",
+//   },
+//   function (err, call) {
+//     if (err) {
+//       console.log(err);
+//     } else {
+//       console.log(call.sid);
+//     }
+//   }
+// );

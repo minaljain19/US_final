@@ -70,7 +70,7 @@ function CallHistory(props) {
     return response.data.token;
   }
   const makeCall = async () => {
-    setCallStatus("calling");
+
     const tokenResponse = await getToken();
 
     const device = new Device(tokenResponse, {
@@ -89,6 +89,8 @@ function CallHistory(props) {
     device.on("disconnect", function (connection) {
       setCallStatus("Ended");
       device.disconnectAll();
+      setCall("false");
+      setCallStatus("idle");
     });
     device.on("error", function (error) {
       console.log("error", error, error?.message.length);
@@ -106,6 +108,7 @@ function CallHistory(props) {
       }
     });
     device.on("ready", () => {
+
       console.log("Twilio Device is ready");
       const connection = device.connect({
         to: "+12054190332",
@@ -119,6 +122,7 @@ function CallHistory(props) {
           toNumber: "+12054190332",
           fromNumber: "+15188726700",
         };
+        setCallStatus("calling");
         const ress = await axios
           .post("http://localhost:5000/api/make-call", callData)
           .then((response) => {
