@@ -1,4 +1,8 @@
 import axios from "axios";
+
+export const userLogout = () => {
+  return { type: "LOGOUT" };
+};
 export const userLogin = (loginData) => {
   console.log("loginData", loginData);
   const email = loginData.email1;
@@ -22,7 +26,7 @@ export const userLogin = (loginData) => {
         }),
       });
       const res = await loginSendData.json();
-      console.log("res",res)
+      console.log("res", res);
       dispatch({
         type: "LOGIN",
         payload: {
@@ -35,7 +39,7 @@ export const userLogin = (loginData) => {
   };
 };
 export const userRegis = (allData) => {
-  console.log("allData", allData);
+  // console.log("allData", allData);
   const username = allData.username;
   const email = allData.email;
   const mobile = allData.mobile;
@@ -74,6 +78,7 @@ export const userRegis = (allData) => {
   };
 };
 
+
 export const getData = () => {
   const config = {
     headers: {
@@ -84,10 +89,31 @@ export const getData = () => {
   return async (dispatch) => {
     try {
       const res = await axios.get(`http://localhost:5000/user`, config);
-    
+
       dispatch({
         type: "getUserData",
         payload: res.data,
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+};
+export const getCallData = () => {
+  const config = {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET,PUT,POST,DELETE,PATCH,OPTIONS",
+    },
+  };
+  return async (dispatch) => {
+    try {
+      
+      const ress = await axios.get(`http://localhost:5000/callHistory`, config);
+      console.log(ress.data)
+      dispatch({
+        type: "getCallData",
+        payload: ress.data,
       });
     } catch (error) {
       console.log(error);

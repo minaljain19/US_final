@@ -14,7 +14,7 @@ import Logout from "@mui/icons-material/Logout";
 import { connect } from "react-redux";
 import { bindActionCreators } from "redux";
 import { useSelector, useDispatch } from "react-redux";
-import { userRegis, getData, userLogin } from "../action";
+import { userRegis, getData, userLogin, getCallData } from "../action";
 import Toolbar from "@mui/material/Toolbar";
 import Table from "@mui/material/Table";
 import Avatar from "@mui/material/Avatar";
@@ -33,6 +33,7 @@ import TabContext from "@mui/lab/TabContext";
 import TabList from "@mui/lab/TabList";
 import TabPanel from "@mui/lab/TabPanel";
 import TableCell from "@mui/material/TableCell";
+import Select from "@mui/material/Select";
 import IconButton from "@mui/material/IconButton";
 import PhoneIcon from "@mui/icons-material/Phone";
 import FavoriteIcon from "@mui/icons-material/Favorite";
@@ -47,6 +48,7 @@ import InboxIcon from "@mui/icons-material/Inbox";
 import DraftsIcon from "@mui/icons-material/Drafts";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import { userLogout } from "../action";
 import Button from "@mui/material/Button";
 import MicOffIcon from "@mui/icons-material/MicOff";
 import Grid from "@mui/material/Grid";
@@ -57,91 +59,106 @@ import logo from "./../logo22.png";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Device, Connection } from "twilio-client";
-
-
 function CallHistory(props) {
-  const ws = new WebSocket(`ws://${window.location.host}`);
-  console.log(ws);
+  const [msg, showMessage] = useState({});
+  const { list, apidata, userLogout, getCallData, userTypeLogin, callData } =
+    props;
   const [callStatus, setCallStatus] = useState("idle");
   const tokenUrl = "http://localhost:5000/api/get-twilio-token";
   async function getToken() {
     const response = await axios.get(tokenUrl);
     return response.data.token;
   }
-
   const makeCall = async () => {
     setCallStatus("calling");
     const tokenResponse = await getToken();
-    console.log("tokenData", tokenResponse);
+
     const device = new Device(tokenResponse, {
       enableRingingState: true,
     });
     console.log("device", device);
+    if (tokenResponse) {
+      console.log("token ress get")
+      device.setup(tokenResponse, {
+        codecPreferences: ["opus", "pcmu"],
+        maxAverageBitrate: 16000,
+        debug: true,
+        enableRingingState: true,
+      });
+    }
+    device.on("disconnect", function (connection) {
+      setCallStatus("Ended");
+      device.disconnectAll();
+    });
+    device.on("error", function (error) {
+      console.log("error", error, error?.message.length);
+      if (
+        error.code === 31205 ||
+        error.code === 31000 ||
+        error.code === 31005
+      ) {
+      } else if (error?.message && error?.message.length === 85) {
+        showMessage({
+          message: error?.message,
+          variant: "error",
+        });
+        console.error("Unidentified Twilio error: ", error);
+      }
+    });
     device.on("ready", () => {
       console.log("Twilio Device is ready");
       const connection = device.connect({
         to: "+12054190332",
         from: "+15188726700",
       });
-    console.log("connection", connection);
-    connection.on("ringing", async () => {
-      alert("call initiated");
-      // const localStream = connection.stream;
-      // // // const localStream = device.activeConnection().getLocalStream();
-      // if (localStream) {
-      //   connection.accept();
-      //   connection.mediaStream.attach(localStream);
-      // }
-      console.log("AS",connection)
-      const callData = {
-        toNumber: "+12054190332",
-        fromNumber: "+15188726700",
-      };
-
-      const ress = await axios
-        .post("http://localhost:5000/api/make-call", callData)
-        .then((response) => {
-          console.log("Call data sent to backend:", response.data);
-        })
-        .catch((error) => {
-          console.error("Error sending call data:", error);
-        });
+      console.log("connection", connection);
+      connection.on("ringing", async () => {
+        // alert("call initiated");
+        console.log("AS", connection);
+        const callData = {
+          toNumber: "+12054190332",
+          fromNumber: "+15188726700",
+        };
+        const ress = await axios
+          .post("http://localhost:5000/api/make-call", callData)
+          .then((response) => {
+            console.log("Call data sent to backend:", response.data);
+          })
+          .catch((error) => {
+            console.error("Error sending call data:", error);
+          });
+      });
     });
-// console.log("dig")
-    connection.on("disconnect", () => {
-
-      // connection.disconnect()
-      setCallStatus("ended");
-    });
-  });
   };
   const navigate = useNavigate();
-  const { list, apidata, userTypeLogin } = props;
-  console.log("sd", userTypeLogin);
 
   const [value, setValue] = React.useState("1");
   const [call, setCall] = useState("false");
   const [num, setNum] = useState("");
-
+  const [age, setAge] = React.useState("");
+  const handleChanges = (event) => {
+    setAge(event.target.value);
+  };
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
   const [anchorEl, setAnchorEl] = React.useState(null);
-
+  const callNow = () => {
+    makeCall();
+    setCall("true");
+  };
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
-
   const handleClose = () => {
     setAnchorEl(null);
   };
   const handleNum = (e) => {
-    console.log(e.target.value);
+
     setNum(() => num + e.target.value);
   };
   const removeNum = () => {
     const newNum = num.slice(0, num.length - 1);
-    console.log(newNum);
     setNum(() => newNum);
   };
   const open = Boolean(anchorEl);
@@ -155,16 +172,26 @@ function CallHistory(props) {
   const handleClose1 = () => {
     setAnchorEl2(null);
   };
-
-  // useEffect(() => {
-  //   if (!userTypeLogin[0]?._id) {
-  //     navigate("/");
-  //   }
-  // }, []);
+  const logOut = () => {
+    userLogout();
+  };
+  useEffect(() => {
+    if (!userTypeLogin[0]?._id) {
+      navigate("/");
+    }
+  }, []);
+  useEffect(() => {
+    getCallData();
+  }, []);
+  useEffect(() => {
+    if (!userTypeLogin[0]?._id) {
+      navigate("/");
+    }
+  }, [userTypeLogin]);
   return (
     <>
-      <button onClick={makeCall}>Make Call</button>
-      <p>Call Status: {callStatus}</p>
+      {/* <button onClick={makeCall}>Make Call</button>
+      <p>Call Status: </p> */}
       <Box className="header" sx={{ flexGrow: 1 }}>
         <AppBar position="static" className="appBar1">
           <Toolbar>
@@ -172,6 +199,9 @@ function CallHistory(props) {
               <img src={logo} className="logoStyle" />
             </Typography>
             {/* <Avatar>H</Avatar> */}
+            <Typography className="firstName">
+              {userTypeLogin[0]?.username}
+            </Typography>
             <Box
               sx={{
                 display: "flex",
@@ -233,7 +263,7 @@ function CallHistory(props) {
 
               <Divider />
 
-              <MenuItem className="logOut" onClick={handleClose1}>
+              <MenuItem className="logOut" onClick={logOut}>
                 <ListItemIcon>
                   <Logout fontSize="small" />
                 </ListItemIcon>
@@ -366,7 +396,7 @@ function CallHistory(props) {
                   </Grid>
                   <Grid className="callButtonStyle">
                     <IconButton
-                      onClick={() => setCall("true")}
+                      onClick={callNow}
                       className="callBut"
                       aria-label="delete"
                     >
@@ -380,96 +410,28 @@ function CallHistory(props) {
                       Contact List
                     </Typography>
                     <List>
-                      <ListItem>
-                        <ListItemText
-                          primary="Minal jain"
-                          secondary="984938399"
-                        />
-                        <ListItemIcon>
-                          <IconButton
-                            className="callButton"
-                            aria-label="delete"
-                            size="small"
-                          >
-                            <PhoneIcon fontSize="inherit" />
-                          </IconButton>
-                        </ListItemIcon>
-                      </ListItem>
-                      <ListItem>
-                        <ListItemText
-                          primary="Minal jain"
-                          secondary="984938399"
-                        />
-                        <ListItemIcon>
-                          <IconButton
-                            className="callButton"
-                            aria-label="delete"
-                            size="small"
-                          >
-                            <PhoneIcon fontSize="inherit" />
-                          </IconButton>
-                        </ListItemIcon>
-                      </ListItem>
-                      <ListItem>
-                        <ListItemText
-                          primary="Minal jain"
-                          secondary="984938399"
-                        />
-                        <ListItemIcon>
-                          <IconButton
-                            className="callButton"
-                            aria-label="delete"
-                            size="small"
-                          >
-                            <PhoneIcon fontSize="inherit" />
-                          </IconButton>
-                        </ListItemIcon>
-                      </ListItem>
-                      <ListItem>
-                        <ListItemText
-                          primary="Minal jain"
-                          secondary="984938399"
-                        />
-                        <ListItemIcon>
-                          <IconButton
-                            className="callButton"
-                            aria-label="delete"
-                            size="small"
-                          >
-                            <PhoneIcon fontSize="inherit" />
-                          </IconButton>
-                        </ListItemIcon>
-                      </ListItem>
-                      <ListItem>
-                        <ListItemText
-                          primary="Minal jain"
-                          secondary="984938399"
-                        />
-                        <ListItemIcon>
-                          <IconButton
-                            className="callButton"
-                            aria-label="delete"
-                            size="small"
-                          >
-                            <PhoneIcon fontSize="inherit" />
-                          </IconButton>
-                        </ListItemIcon>
-                      </ListItem>
-                      <ListItem>
-                        <ListItemText
-                          primary="Minal jain"
-                          secondary="984938399"
-                        />
-                        <ListItemIcon>
-                          <IconButton
-                            className="callButton"
-                            aria-label="delete"
-                            size="small"
-                          >
-                            <PhoneIcon fontSize="inherit" />
-                          </IconButton>
-                        </ListItemIcon>
-                      </ListItem>
+                      {apidata
+                        .filter((item) => item._id != userTypeLogin[0]?._id)
+                        .map((eachCall) => (
+                          <ListItem>
+                            <ListItemText
+                              primary={eachCall.username}
+                              secondary={eachCall.mobile}
+                            />
+                            <ListItemIcon>
+                              <IconButton
+                                className="callButton"
+                                aria-label="delete"
+                                size="small"
+                              >
+                                <PhoneIcon fontSize="inherit" />
+                              </IconButton>
+                            </ListItemIcon>
+                          </ListItem>
+                        ))}
+
+                    
+                    
                     </List>
                   </Paper>
                 </TabPanel>
@@ -492,9 +454,11 @@ function CallHistory(props) {
               <TabContext className="tabCall" value={value}>
                 <TabPanel className="" value="1">
                   <Grid className="tabPanelForNum">
-                    <Typography className="callName">Ankit Jamera</Typography>
+                    <Typography className="callName">Minal jain</Typography>
                     <Typography>+91 989399399</Typography>
-                    <Typography className="calling">Calling...</Typography>
+                    <Typography className="calling">
+                      {callStatus} ...
+                    </Typography>
                     <Grid container className="callOption">
                       <Grid sm="3" md="3" xs="2"></Grid>
                       <Grid sm="3" md="3" xs="3">
@@ -530,7 +494,22 @@ function CallHistory(props) {
         <Typography variant="h5" className="callT">
           Call History
         </Typography>
-
+        {/* <Grid className="tableFilter">f
+           <FormControl variant="filled" sx={{ m: 1, minWidth: 120 }}>
+        <InputLabel id="demo-simple-select-filled-label">Status</InputLabel>
+        <Select
+             displayEmpty
+          inputProps={{ 'aria-label': 'Without label' }}
+          value={age}
+          onChange={handleChanges}
+        >
+    
+          <MenuItem value={10}>Connected</MenuItem>
+          <MenuItem value={20}>Rejected</MenuItem>
+          <MenuItem value={30}>Busy</MenuItem>
+        </Select>
+      </FormControl>
+       </Grid> */}
         <TableContainer className="callHistory" component={Paper}>
           <Table aria-label="spanning table" className="callHistoryTable">
             <TableHead className="tableHeader">
@@ -544,70 +523,31 @@ function CallHistory(props) {
               </TableRow>
             </TableHead>
             <TableBody>
-              <TableRow key="12">
-                <TableCell style={{ width: "10%" }}>1</TableCell>
-                <TableCell style={{ width: "20%", fontWeight: "bold" }}>
-                  Minal jain
-                </TableCell>
-                <TableCell style={{ width: "20%", fontWeight: "bold" }}>
-                  Kavya suthar
-                </TableCell>
-                <TableCell style={{ width: "20%", fontWeight: "bold" }}>
-                  11:00 AM
-                </TableCell>
-                <TableCell style={{ width: "15%", fontWeight: "bold" }}>
-                  60 min
-                </TableCell>
-                <TableCell style={{ width: "4%" }}>
-                  {" "}
-                  <Chip label="connected" color="success" />
-                </TableCell>
-              </TableRow>
-              <TableRow key="12">
-                <TableCell style={{ width: "10%" }}>1</TableCell>
-                <TableCell style={{ width: "20%", fontWeight: "bold" }}>
-                  Minal jain
-                </TableCell>
-                <TableCell style={{ width: "20%", fontWeight: "bold" }}>
-                  Kavya suthar
-                </TableCell>
-                <TableCell style={{ width: "20%", fontWeight: "bold" }}>
-                  11:00 Am
-                </TableCell>
-                <TableCell style={{ width: "15%", fontWeight: "bold" }}>
-                  00 min
-                </TableCell>
-                <TableCell style={{ width: "4%" }}>
-                  <Chip
-                    label="rejected"
-                    className="ringingCall"
-                    color="error"
-                  />
-                </TableCell>
-              </TableRow>
-              <TableRow key="12">
-                <TableCell style={{ width: "10%" }}>1</TableCell>
-                <TableCell style={{ width: "20%", fontWeight: "bold" }}>
-                  Minal jain
-                </TableCell>
-                <TableCell style={{ width: "20%", fontWeight: "bold" }}>
-                  navin suthar
-                </TableCell>
-                <TableCell style={{ width: "20%", fontWeight: "bold" }}>
-                  12:00 AM
-                </TableCell>
-                <TableCell style={{ width: "15%", fontWeight: "bold" }}>
-                  10 min
-                </TableCell>
-                <TableCell style={{ width: "4%" }}>
-                  {" "}
-                  <Chip
-                    label="ringing"
-                    className="ringingCall"
-                    color="warning"
-                  />
-                </TableCell>
-              </TableRow>
+              {callData
+                .filter((item) => item.user_id == userTypeLogin[0]?._id)
+                .map((eachCall) => (
+                  <TableRow key="12">
+                    <TableCell style={{ width: "20%", fontWeight: "bold" }}>
+                      {eachCall.callId}
+                    </TableCell>
+                    <TableCell style={{ width: "20%", fontWeight: "bold" }}>
+                      {eachCall.to}
+                    </TableCell>
+                    <TableCell style={{ width: "20%", fontWeight: "bold" }}>
+                      {eachCall.from}
+                    </TableCell>
+                    <TableCell style={{ width: "20%", fontWeight: "bold" }}>
+                      {eachCall.callTime} AM
+                    </TableCell>
+                    <TableCell style={{ width: "15%", fontWeight: "bold" }}>
+                      {eachCall.duration} sec
+                    </TableCell>
+                    <TableCell style={{ width: "4%" }}>
+                      {" "}
+                      <Chip className="ringingCall" label={eachCall.action} color="success" />
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </TableContainer>
@@ -621,12 +561,16 @@ const mapStateToProps = (state) => {
     apidata: state?.user1?.apidata,
     error: state?.user1?.error,
     userTypeLogin: state?.user1?.userTypeLogin,
+    callData: state?.user1?.callData,
   };
 };
 
 const mapDispatchToProps = (dispatch) => {
   return bindActionCreators(
-    {},
+    {
+      userLogout,
+      getCallData,
+    },
 
     dispatch
   );

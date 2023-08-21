@@ -1,0 +1,266 @@
+const Twilio = require("twilio-client");
+let device = new Twilio.Device();
+export function getTwilioDeviceReady(
+  token,
+  state,
+  setState,
+  getCallStatus,
+  showMessage,
+  business
+) {
+
+  if (token) {
+    device.setup(token, {
+      codecPreferences: ["opus", "pcmu"],
+
+      maxAverageBitrate: 16000,
+
+      debug: true,
+
+      enableRingingState: true,
+
+    });
+
+  }
+
+ 
+
+  device.on("error", function(error) {
+
+    console.log("error", error, error?.message.length);
+
+    if (error.code === 31205 || error.code === 31000 || error.code === 31005) {
+
+      // here we can give one more try for get token
+
+    } else if (error?.message && error?.message.length === 85) {
+
+      showMessage({
+
+        message: error?.message,
+
+        variant: "error",
+
+      });
+
+      console.error("Unidentified Twilio error: ", error);
+
+    }
+
+  });
+
+ 
+
+  device.on("ready", async function(ready) {
+
+    console.log("R E A DY   S");
+
+    setState((prevState) => ({ ...prevState, loading: true }));
+
+  });
+
+ 
+
+  device.on("connect", async function(connection) {
+
+    let unSubscribeListener = await getCallStatus(
+
+      connection?.parameters?.CallSid
+
+    );
+
+    setState((prevState) => ({
+
+      ...prevState,
+
+      showType: "connected",
+
+      unSubscribeListener: unSubscribeListener,
+
+      callSid: connection?.parameters?.CallSid,
+
+    }));
+
+  });
+
+ 
+
+  device.on("disconnect", function(connection) {
+
+    if (state.unSubscribeListener) {
+
+      state.unSubscribeListener();
+
+    }
+
+    device.disconnectAll();
+
+    setState((prevState) => ({
+
+      ...prevState,
+
+      statusPopUp: true,
+
+      listenerClose: false,
+
+      contactName: "",
+
+      contact_id: "",
+
+      minimize: false,
+
+      showType: "dialer",
+
+      digit: business?.country?.country_calling_code,
+
+      minimize: false,
+
+      contactName: "",
+
+      time: 0,
+
+      profile: "",
+
+      formattedDigit: business?.country?.country_calling_code,
+
+      dialPadDigit: "",
+
+      dialPad: false,
+
+    }));
+
+    console.log(connection);
+
+  });
+
+ 
+
+  return device;
+
+}
+
+ 
+
+export async function disconnectTwilioCall(state, setState, business) {
+
+  await device.disconnectAll();
+
+  setState((prevState) => ({
+
+    ...prevState,
+
+    statusPopUp: true,
+
+    digit: business?.country?.country_calling_code,
+
+    formattedDigit: business?.country?.country_calling_code,
+
+    showType: "dialer",
+
+    dialPad: false,
+
+    dialPadDigit: "",
+
+  }));
+
+  if (state.unSubscribeListener) state.unSubscribeListener();
+
+}
+
+ 
+
+export function sendDigitToTwilio(digit) {
+
+  device.activeConnection().sendDigits(digit);
+
+}
+
+ 
+
+export function muteTwilioCall(mute) {
+
+  device.activeConnection().mute(mute);
+
+}
+
+ 
+
+export function getTwilioStatus() {
+
+  try {
+
+    return device.status();
+
+  } catch (e) {
+
+    console.log("error", e);
+
+  }
+
+}
+
+ 
+
+export function outgoingCall(
+  number,
+  callerId,
+  contactId,
+  businessId,
+  companyId,
+  dealId,
+  userId
+) {
+  let dataToSend = {};
+  if (contactId) {
+
+    dataToSend.contactId = contactId;
+
+  }
+
+  if (dealId) {
+
+    dataToSend.dealId = dealId;
+
+  }
+
+  if (userId) {
+
+    dataToSend.userId = userId;
+
+  }
+
+  if (number) {
+
+    dataToSend.number = number.replaceAll(" ", "");
+
+  }
+
+  if (companyId) {
+
+    dataToSend.companyId = companyId;
+
+  }
+
+  if (callerId) {
+
+    dataToSend.callerId = callerId;
+
+  }
+
+  if (businessId) {
+
+    dataToSend.businessId = businessId;
+
+  }
+
+  try {
+
+    device.connect(dataToSend);
+
+  } catch (e) {
+
+    console.error(e);
+
+  }
+
+}
