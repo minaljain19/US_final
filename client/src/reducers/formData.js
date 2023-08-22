@@ -5,6 +5,8 @@ const initialData = {
   error: [],
   status: [],
   userTypeLogin: [],
+  tokenResponse:[],
+  callData:[]
 };
 
 const user1 = (state = initialData, action) => {
@@ -16,7 +18,26 @@ const user1 = (state = initialData, action) => {
         apidata: action.payload,
       };
     }
-
+    case "getCallData": {
+      console.log("action.payload", action.payload);
+      return {
+        ...state,
+        callData: action.payload,
+      };
+    }
+    
+    case "LOGOUT":
+      console.log("logout")
+      return {
+        ...state,
+        userTypeLogin: "",
+      };
+    case "getToken":
+      console.log(action.payload);
+      return {
+        ...state,
+        tokenResponse:action.payload,
+      }
     case "LOGIN":
       const { data1 } = action.payload;
       console.log("set h", data1);
