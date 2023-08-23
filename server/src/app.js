@@ -11,7 +11,6 @@ const twilio = require("twilio");
 require("./db/connect");
 const User = require("./models/userData");
 const CallHis = require("./models/callHis");
-
 const port = process.env.port || 5000;
 const cors = require("cors");
 const server = http.createServer(app);
@@ -22,7 +21,7 @@ var authToken = "9d2ff6d47579ba749ee8d0708181b866";
 const sid = "SK09c8c07532d9bf08292a81b55c83d461";
 const secret = "U05A0cWHTRT2SEC3BcbTRpNfQU2wpaoN";
 const identity = "minalpagaria@gmail.com";
-var client = require("twilio")(accountSid, authToken);
+const client = require("twilio")(accountSid, authToken);
 const jwt = require("jsonwebtoken");
 app.use(
   cors({
@@ -100,31 +99,56 @@ app.post("/user", async (req, res) => {
     const { email, mobile } = req.body;
     const user = new User(req.body);
     const userStats = await user.save();
-
     res.status(201).send(userStats);
   } catch (e) {
     res.status(500).send(e);
   }
 });
+app.post("/recording-callback", async (req, res) => {
+  try {
+    const recordingStatus = req.body.RecordingStatus;
+    const recordingSid = req.body.RecordingSid;
+    const recordingUrl = req.body.RecordingUrl;
 
-app.post("/api/make-call", async (req, res) => {
+    console.log("Recording Status:", recordingStatus);
+    console.log("Recording SID:", recordingSid);
+    console.log("Recording URL:", recordingUrl);
+
+    res.status(200).send("Recording callback received.");
+  } catch (e) {
+    console.error("Error handling recording callback:", e);
+    res.status(500).send(e);
+  }
+});
+
+app.post("/api/call-back/:to/", async (req, res) => {
+  console.log("req", req);
+});
+app.post("/api/make-call/:to/", async (req, res) => {
   try {
     console.log("call init");
+    console.log("req call no", req.body);
+    console.log("end");
+    const ClientCapability = require("twilio").jwt.ClientCapability;
+    // const capability = new ClientCapability({
+    //   accountSid: accountSid,
+    //   authToken: authToken,
+    // });
+    // capability.addScope(
+    //   new ClientCapability.OutgoingClientScope({ applicationSid: "APcc2ce3dc1dc3d1b038c6b491a380c959" })
+    // );
+    // const token = capability.toJwt();
     const { toNumber, fromNumber } = req.body;
     const twiml = new VoiceResponse();
     twiml.say("Hello! This is a sample call using TwiML.");
-    twiml.play(
-      {
-        loop: 10,
-      },
-      "https://api.twilio.com/cowbell.mp3"
-    );
-    twiml.dial(
-      {
-        callerId: fromNumber,
-      },
-      toNumber
-    );
+    // twiml.dial("+12054190332");
+    const dial = twiml.dial({
+      callerId: "+15188726700",
+      record: "record-from-ringing-dual",
+      recordingStatusCallback: "/recording-callback",
+    });
+    dial.number(req.body.to);
+    // res.json(twiml);
     res.set("Content-Type", "text/xml");
     res.send(twiml.toString()); // Send the TwiML response
   } catch (e) {
@@ -138,8 +162,8 @@ app.listen(port, () => {
 
 // client.calls.create(
 //   {
-//     url: "http://demo.twilio.com/docs/voice.xml",
-//     to: "+12056834779",
+//     url: "https://demo.twilio.com/welcome/voice/",
+//     to: "+12054190332",
 //     from: "+15188726700",
 //   },
 //   function (err, call) {

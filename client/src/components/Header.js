@@ -5,7 +5,7 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 
-import logo from "./../logo22.png";
+import logo from "../Assests/logo22.png";
 export default function Header() {
   return (
     <>
@@ -20,9 +20,7 @@ export default function Header() {
             >
               <img src={logo} className="logoStyle" />
             </Typography>
-            {/* <Button color="inherit">Logout</Button> */}
-            <Button>{/* <NotificationsNoneIcon /> */}</Button>
-            <Button>{/* <AccountCircleIcon /> */}</Button>
+       
           </Toolbar>
         </AppBar>
       </Box>

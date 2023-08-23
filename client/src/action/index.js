@@ -1,7 +1,14 @@
 import axios from "axios";
-
+import {
+  LOGIN,
+  LOGOUT,
+  ADDDATA,
+  GET_USER_DATA,
+  GET_CALL_DATA,
+  GET_TWILIO_TOKEN
+} from "../Components/Constant.js";
 export const userLogout = () => {
-  return { type: "LOGOUT" };
+  return { type: LOGOUT };
 };
 export const userLogin = (loginData) => {
   console.log("loginData", loginData);
@@ -28,7 +35,7 @@ export const userLogin = (loginData) => {
       const res = await loginSendData.json();
       console.log("res", res);
       dispatch({
-        type: "LOGIN",
+        type: LOGIN,
         payload: {
           data1: [res],
         },
@@ -39,7 +46,6 @@ export const userLogin = (loginData) => {
   };
 };
 export const userRegis = (allData) => {
-  // console.log("allData", allData);
   const username = allData.username;
   const email = allData.email;
   const mobile = allData.mobile;
@@ -67,7 +73,7 @@ export const userRegis = (allData) => {
       });
       const res = await apiSendData.json();
       dispatch({
-        type: "ADDDATA",
+        type: ADDDATA,
         payload: {
           data: res,
         },
@@ -77,7 +83,6 @@ export const userRegis = (allData) => {
     }
   };
 };
-
 
 export const getData = () => {
   const config = {
@@ -91,7 +96,7 @@ export const getData = () => {
       const res = await axios.get(`http://localhost:5000/user`, config);
 
       dispatch({
-        type: "getUserData",
+        type: GET_USER_DATA,
         payload: res.data,
       });
     } catch (error) {
@@ -99,6 +104,27 @@ export const getData = () => {
     }
   };
 };
+export const getTokens = () => {
+  const config = {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET,PUT,POST,DELETE,PATCH,OPTIONS",
+    },
+  };
+  return async (dispatch) => {
+    try {
+      const response = await axios.get(`http://localhost:5000/api/get-twilio-token`, config);
+      console.log("toeknn",response.data.token)
+      dispatch({
+        type: GET_TWILIO_TOKEN,
+        payload: response.data.token,
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+};
+
 export const getCallData = () => {
   const config = {
     headers: {
@@ -108,11 +134,10 @@ export const getCallData = () => {
   };
   return async (dispatch) => {
     try {
-      
       const ress = await axios.get(`http://localhost:5000/callHistory`, config);
-      console.log(ress.data)
+      console.log(ress.data);
       dispatch({
-        type: "getCallData",
+        type: GET_CALL_DATA,
         payload: ress.data,
       });
     } catch (error) {
@@ -120,4 +145,3 @@ export const getCallData = () => {
     }
   };
 };
-

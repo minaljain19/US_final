@@ -1,42 +1,31 @@
 import React, { useEffect, useState } from "react";
-import Header from "./Header";
-import Chip from "@mui/material/Chip";
 import AppBar from "@mui/material/AppBar";
+import CustomTableCell from "./TableCellComponent";
 import Box from "@mui/material/Box";
 import DoNotDisturbOnIcon from "@mui/icons-material/DoNotDisturbOn";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Divider from "@mui/material/Divider";
 import Tooltip from "@mui/material/Tooltip";
-import PersonAdd from "@mui/icons-material/PersonAdd";
-import Settings from "@mui/icons-material/Settings";
 import Logout from "@mui/icons-material/Logout";
 import { connect } from "react-redux";
 import { bindActionCreators } from "redux";
-import { useSelector, useDispatch } from "react-redux";
-import { userRegis, getData, userLogin, getCallData } from "../action";
+import { getCallData } from "../Action";
 import Toolbar from "@mui/material/Toolbar";
 import Table from "@mui/material/Table";
 import Avatar from "@mui/material/Avatar";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import CallEndIcon from "@mui/icons-material/CallEnd";
 import DialpadIcon from "@mui/icons-material/Dialpad";
-import Input from "@mui/material/Input";
 import TableBody from "@mui/material/TableBody";
 import TextField from "@mui/material/TextField";
-import InputLabel from "@mui/material/InputLabel";
-import InputAdornment from "@mui/material/InputAdornment";
-import FormHelperText from "@mui/material/FormHelperText";
-import FormControl from "@mui/material/FormControl";
 import Tab from "@mui/material/Tab";
 import TabContext from "@mui/lab/TabContext";
 import TabList from "@mui/lab/TabList";
 import TabPanel from "@mui/lab/TabPanel";
 import TableCell from "@mui/material/TableCell";
-import Select from "@mui/material/Select";
 import IconButton from "@mui/material/IconButton";
 import PhoneIcon from "@mui/icons-material/Phone";
-import FavoriteIcon from "@mui/icons-material/Favorite";
 import PersonPinIcon from "@mui/icons-material/PersonPin";
 import TableContainer from "@mui/material/TableContainer";
 import List from "@mui/material/List";
@@ -44,41 +33,48 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import InboxIcon from "@mui/icons-material/Inbox";
-import DraftsIcon from "@mui/icons-material/Drafts";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import { userLogout } from "../action";
+import { userLogout,getTokens } from "../Action";
 import Button from "@mui/material/Button";
 import MicOffIcon from "@mui/icons-material/MicOff";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
-import { Typography, useScrollTrigger } from "@mui/material";
+import { Typography } from "@mui/material";
 import Popover from "@mui/material/Popover";
-import logo from "./../logo22.png";
+import logo from "../Assests/logo22.png";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Device, Connection } from "twilio-client";
+import { buttonNumber, tableHeading } from "./Constant.js";
 function CallHistory(props) {
-  const [msg, showMessage] = useState({});
-  const { list, apidata, userLogout, getCallData, userTypeLogin, callData } =
+  const navigate = useNavigate();
+  const [state, setState] = useState({
+    value: "1",
+    call: "false",
+    num: "+1",
+    age: "",
+    msg: {},
+    anchorEl: null,
+    anchorEl2: null,
+    callStatus: "idle",
+  });
+
+  const { apidata, userLogout, getCallData, userTypeLogin, callData,getTokens, } =
     props;
-  const [callStatus, setCallStatus] = useState("idle");
   const tokenUrl = "http://localhost:5000/api/get-twilio-token";
   async function getToken() {
     const response = await axios.get(tokenUrl);
     return response.data.token;
   }
   const makeCall = async () => {
-
     const tokenResponse = await getToken();
-
     const device = new Device(tokenResponse, {
       enableRingingState: true,
     });
     console.log("device", device);
     if (tokenResponse) {
-      console.log("token ress get")
+      console.log("token ress get");
       device.setup(tokenResponse, {
         codecPreferences: ["opus", "pcmu"],
         maxAverageBitrate: 16000,
@@ -87,10 +83,16 @@ function CallHistory(props) {
       });
     }
     device.on("disconnect", function (connection) {
-      setCallStatus("Ended");
+      setState((prevState) => ({
+        ...prevState,
+        callStatus: "Ended",
+      }));
       device.disconnectAll();
-      setCall("false");
-      setCallStatus("idle");
+      setState((prevState) => ({
+        ...prevState,
+        call: "false",
+        callStatus: "idle",
+      }));
     });
     device.on("error", function (error) {
       console.log("error", error, error?.message.length);
@@ -100,91 +102,109 @@ function CallHistory(props) {
         error.code === 31005
       ) {
       } else if (error?.message && error?.message.length === 85) {
-        showMessage({
-          message: error?.message,
-          variant: "error",
-        });
+        setState((prevState) => ({
+          ...prevState,
+          msg: {
+            message: error?.message,
+            variant: "error",
+          },
+        }));
+
         console.error("Unidentified Twilio error: ", error);
       }
     });
     device.on("ready", () => {
-
       console.log("Twilio Device is ready");
       const connection = device.connect({
-        to: "+12054190332",
+        to: state.num,
         from: "+15188726700",
       });
+      console.log("num", state.num);
       console.log("connection", connection);
       connection.on("ringing", async () => {
-        // alert("call initiated");
-        console.log("AS", connection);
-        const callData = {
-          toNumber: "+12054190332",
-          fromNumber: "+15188726700",
-        };
-        setCallStatus("calling");
-        const ress = await axios
-          .post("http://localhost:5000/api/make-call", callData)
-          .then((response) => {
-            console.log("Call data sent to backend:", response.data);
-          })
-          .catch((error) => {
-            console.error("Error sending call data:", error);
-          });
+        setState((prevState) => ({
+          ...prevState,
+          callStatus: "calling",
+        }));
       });
     });
   };
-  const navigate = useNavigate();
-
-  const [value, setValue] = React.useState("1");
-  const [call, setCall] = useState("false");
-  const [num, setNum] = useState("");
-  const [age, setAge] = React.useState("");
-  const handleChanges = (event) => {
-    setAge(event.target.value);
-  };
+  // const handleChanges = (event) => {
+  //   setState((prevState) => ({
+  //     ...prevState,
+  //     age: event.target.value,
+  //   }));
+  // };
   const handleChange = (event, newValue) => {
-    setValue(newValue);
+    setState((prevState) => ({
+      ...prevState,
+      value: newValue,
+    }));
   };
-  const [anchorEl, setAnchorEl] = React.useState(null);
+
   const callNow = () => {
     makeCall();
-    setCall("true");
+    setState((prevState) => ({
+      ...prevState,
+      call: "true",
+    }));
   };
   const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
+    setState((prevState) => ({
+      ...prevState,
+      anchorEl: event.currentTarget,
+    }));
   };
   const handleClose = () => {
-    setAnchorEl(null);
+    setState((prevState) => ({
+      ...prevState,
+      anchorEl: null,
+    }));
   };
   const handleNum = (e) => {
-
-    setNum(() => num + e.target.value);
+    setState((prevState) => ({
+      ...prevState,
+      num: state.num + e.target.value,
+    }));
   };
   const removeNum = () => {
-    const newNum = num.slice(0, num.length - 1);
-    setNum(() => newNum);
+    const newNum = state.num.slice(0, state.num.length - 1);
+    setState((prevState) => ({
+      ...prevState,
+      num: newNum,
+    }));
   };
-  const open = Boolean(anchorEl);
+  const open = Boolean(state.anchorEl);
   const id = open ? "simple-popover" : undefined;
-
-  const [anchorEl2, setAnchorEl2] = React.useState(null);
-  const open1 = Boolean(anchorEl2);
+  const open1 = Boolean(state.anchorEl2);
   const handleClick1 = (event) => {
-    setAnchorEl2(event.currentTarget);
+    setState((prevState) => ({
+      ...prevState,
+      anchorEl2: event.currentTarget,
+    }));
   };
   const handleClose1 = () => {
-    setAnchorEl2(null);
+    setState((prevState) => ({
+      ...prevState,
+      anchorEl2: null,
+    }));
+  };
+  const callEnded = () => {
+    console.log("Hanging up...");
+    setState((prevState) => ({
+      ...prevState,
+
+      call: "false",
+    }));
   };
   const logOut = () => {
     userLogout();
   };
+
   useEffect(() => {
     if (!userTypeLogin[0]?._id) {
       navigate("/");
     }
-  }, []);
-  useEffect(() => {
     getCallData();
   }, []);
   useEffect(() => {
@@ -194,15 +214,12 @@ function CallHistory(props) {
   }, [userTypeLogin]);
   return (
     <>
-      {/* <button onClick={makeCall}>Make Call</button>
-      <p>Call Status: </p> */}
       <Box className="header" sx={{ flexGrow: 1 }}>
         <AppBar position="static" className="appBar1">
           <Toolbar>
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
               <img src={logo} className="logoStyle" />
             </Typography>
-            {/* <Avatar>H</Avatar> */}
             <Typography className="firstName">
               {userTypeLogin[0]?.username}
             </Typography>
@@ -227,7 +244,7 @@ function CallHistory(props) {
               </Tooltip>
             </Box>
             <Menu
-              anchorEl={anchorEl2}
+              anchorEl={state.anchorEl2}
               id="account-menu"
               open={open1}
               onClose={handleClose1}
@@ -264,9 +281,7 @@ function CallHistory(props) {
               <MenuItem className="logOut" onClick={handleClose1}>
                 <Avatar /> Profile
               </MenuItem>
-
               <Divider />
-
               <MenuItem className="logOut" onClick={logOut}>
                 <ListItemIcon>
                   <Logout fontSize="small" />
@@ -274,8 +289,6 @@ function CallHistory(props) {
                 Logout
               </MenuItem>
             </Menu>
-            {/* <Button color="inherit">Logout</Button> */}
-            <Button>{/* <NotificationsNoneIcon /> */}</Button>
           </Toolbar>
         </AppBar>
       </Box>
@@ -293,7 +306,7 @@ function CallHistory(props) {
           className="popOver"
           id={id}
           open={open}
-          anchorEl={anchorEl}
+          anchorEl={state.anchorEl}
           onClose={handleClose}
           sx={{ maxHeight: 540 }}
           anchorOrigin={{
@@ -302,15 +315,15 @@ function CallHistory(props) {
           }}
         >
           <Box sx={{ width: "290px", typography: "body1" }}>
-            {call == "false" ? (
-              <TabContext className="tabContent" value={value}>
+            {state.call == "false" ? (
+              <TabContext className="tabContent" value={state.value}>
                 <TabPanel className="tabBack tabPanel2" value="1">
                   <Grid className="backImg">
                     <TextField
                       disableUnderline={false}
                       className="numFiller"
                       InputProps={{ disableUnderline: true }}
-                      value={num}
+                      value={state.num}
                       variant="standard"
                       fullWidth
                     />
@@ -318,85 +331,15 @@ function CallHistory(props) {
                     <BackspaceIcon onClick={removeNum} className="backSpace" />
                   </Grid>
                   <Grid className="tabPanelForNum">
-                    <Button value="1" onClick={handleNum} className="numButton">
-                      1
-                    </Button>
-                    <Button
-                      size="small"
-                      value="2"
-                      onClick={handleNum}
-                      className="numButton"
-                    >
-                      2
-                    </Button>
-                    <Button
-                      size="small"
-                      value="3"
-                      onClick={handleNum}
-                      className="numButton"
-                    >
-                      3
-                    </Button>
-                    <Button
-                      size="small"
-                      value="4"
-                      onClick={handleNum}
-                      className="numButton"
-                    >
-                      4
-                    </Button>
-                    <Button
-                      size="small"
-                      value="5"
-                      onClick={handleNum}
-                      className="numButton"
-                    >
-                      5
-                    </Button>
-                    <Button
-                      size="small"
-                      value="6"
-                      onClick={handleNum}
-                      className="numButton"
-                    >
-                      6
-                    </Button>
-                    <Button
-                      size="small"
-                      value="7"
-                      onClick={handleNum}
-                      className="numButton"
-                    >
-                      7
-                    </Button>
-                    <Button
-                      size="small"
-                      value="8"
-                      onClick={handleNum}
-                      className="numButton"
-                    >
-                      8
-                    </Button>
-                    <Button
-                      size="small"
-                      value="9"
-                      onClick={handleNum}
-                      className="numButton"
-                    >
-                      9
-                    </Button>
-                    <Button
-                      size="small"
-                      value="0"
-                      onClick={handleNum}
-                      className="numButton"
-                    >
-                      0
-                    </Button>
-                    <Button size="small" className="numButton">
-                      *
-                    </Button>
-                    <Button className="numButton">#</Button>
+                    {buttonNumber.map((item, index) => (
+                      <Button
+                        value={item}
+                        onClick={handleNum}
+                        className="numButton"
+                      >
+                        {item}
+                      </Button>
+                    ))}
                   </Grid>
                   <Grid className="callButtonStyle">
                     <IconButton
@@ -433,9 +376,6 @@ function CallHistory(props) {
                             </ListItemIcon>
                           </ListItem>
                         ))}
-
-                    
-                    
                     </List>
                   </Paper>
                 </TabPanel>
@@ -455,13 +395,13 @@ function CallHistory(props) {
                 </Box>
               </TabContext>
             ) : (
-              <TabContext className="tabCall" value={value}>
+              <TabContext className="tabCall" value={state.value}>
                 <TabPanel className="" value="1">
                   <Grid className="tabPanelForNum">
                     <Typography className="callName">Minal jain</Typography>
                     <Typography>+91 989399399</Typography>
                     <Typography className="calling">
-                      {callStatus} ...
+                      {state.callStatus} ...
                     </Typography>
                     <Grid container className="callOption">
                       <Grid sm="3" md="3" xs="2"></Grid>
@@ -482,7 +422,7 @@ function CallHistory(props) {
                   <Grid className="callButtonStyle1">
                     <IconButton
                       className="callEnded"
-                      onClick={() => setCall("false")}
+                      onClick={callEnded}
                       aria-label="delete"
                     >
                       <CallEndIcon fontSize="inherit" />
@@ -498,32 +438,13 @@ function CallHistory(props) {
         <Typography variant="h5" className="callT">
           Call History
         </Typography>
-        {/* <Grid className="tableFilter">f
-           <FormControl variant="filled" sx={{ m: 1, minWidth: 120 }}>
-        <InputLabel id="demo-simple-select-filled-label">Status</InputLabel>
-        <Select
-             displayEmpty
-          inputProps={{ 'aria-label': 'Without label' }}
-          value={age}
-          onChange={handleChanges}
-        >
-    
-          <MenuItem value={10}>Connected</MenuItem>
-          <MenuItem value={20}>Rejected</MenuItem>
-          <MenuItem value={30}>Busy</MenuItem>
-        </Select>
-      </FormControl>
-       </Grid> */}
         <TableContainer className="callHistory" component={Paper}>
           <Table aria-label="spanning table" className="callHistoryTable">
             <TableHead className="tableHeader">
               <TableRow>
-                <TableCell className="heading">Call Id</TableCell>
-                <TableCell className="heading">From</TableCell>
-                <TableCell className="heading">To</TableCell>
-                <TableCell className="heading">Call Time</TableCell>
-                <TableCell className="heading">Duration</TableCell>
-                <TableCell className="heading">Action</TableCell>
+                {tableHeading.map((item, index) => (
+                  <TableCell className="heading">{item}</TableCell>
+                ))}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -531,25 +452,15 @@ function CallHistory(props) {
                 .filter((item) => item.user_id == userTypeLogin[0]?._id)
                 .map((eachCall) => (
                   <TableRow key="12">
-                    <TableCell style={{ width: "20%", fontWeight: "bold" }}>
-                      {eachCall.callId}
-                    </TableCell>
-                    <TableCell style={{ width: "20%", fontWeight: "bold" }}>
-                      {eachCall.to}
-                    </TableCell>
-                    <TableCell style={{ width: "20%", fontWeight: "bold" }}>
-                      {eachCall.from}
-                    </TableCell>
-                    <TableCell style={{ width: "20%", fontWeight: "bold" }}>
-                      {eachCall.callTime} AM
-                    </TableCell>
-                    <TableCell style={{ width: "15%", fontWeight: "bold" }}>
-                      {eachCall.duration} sec
-                    </TableCell>
-                    <TableCell style={{ width: "4%" }}>
-                      {" "}
-                      <Chip className="ringingCall" label={eachCall.action} color="success" />
-                    </TableCell>
+                    <CustomTableCell content={eachCall.callId} />
+                    <CustomTableCell content={eachCall.to} />
+                    <CustomTableCell content={eachCall.from} />
+                    <CustomTableCell content={`${eachCall.callTime} AM`} />
+                    <CustomTableCell content={`${eachCall.duration} sec`} />
+                    <CustomTableCell
+                      chipLabel={eachCall.action}
+                      chipColor="success"
+                    />
                   </TableRow>
                 ))}
             </TableBody>
@@ -566,6 +477,8 @@ const mapStateToProps = (state) => {
     error: state?.user1?.error,
     userTypeLogin: state?.user1?.userTypeLogin,
     callData: state?.user1?.callData,
+    tokenData: state?.user1?.tokenData,
+    
   };
 };
 
@@ -574,6 +487,7 @@ const mapDispatchToProps = (dispatch) => {
     {
       userLogout,
       getCallData,
+      getTokens
     },
 
     dispatch

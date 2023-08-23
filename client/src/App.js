@@ -2,8 +2,8 @@ import logo from "./logo.svg";
 import Grid from "@mui/material/Grid";
 import "./App.css";
 import { Route, Routes } from "react-router-dom";
-import Login from "./components/Login";
-import CallHistory from "./components/CallHistory";
+import Login from "./Components/Login";
+import CallHistory from "./Components/CallHistory";
 function App() {
   return (
     <>

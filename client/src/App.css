@@ -1,16 +1,16 @@
 .mainBox {
-  background-image: url("./back1.jpg");
+  background-image: url("./Assests/back1.jpg");
   background-repeat: no-repeat !important;
   background-size: cover !important;
   height: 651px !important;
 }
 .numFiller {
   width: 80% !important;
-  padding-top: 10px !important;
+  padding-top: 15px !important;
   font-weight: bold !important;
   font-family: "Freehand", cursive !important;
   font-family: "Libre Baskerville", serif !important;
-  margin-left: 30px !important;
+  margin-left: 20px !important;
   margin-bottom: 14px !important;
 }
 
@@ -21,13 +21,13 @@
   font-weight: 400 !important;
   color: white !important;
 
-  font-size: 32px !important;
+  font-size: 27px !important;
 
 
   text-align: center !important;
 }
 .tabBack{
-  background-image: url('wave.png') !important;
+  background-image: url('./Assests/wave.png') !important;
   background-repeat: no-repeat;
   /* background-size: contain !important; */
   background-size: 204%;
@@ -160,7 +160,7 @@
   transition: 1.4s !important;
 }
 .tableHeader {
-  background-image: url('./ds.png') !important;
+  background-image: url('./Assests/ds.png') !important;
   font-weight: bold !important;
   color: white !important;
 }
@@ -172,7 +172,7 @@
   color: white !important;
   font-weight: bold !important;
   padding-bottom: 10px !important;
-  background-image: url('./ds.png') !important;
+  background-image: url('./Assests/ds.png') !important;
   padding-left: 10px !important;
 
 }
@@ -199,7 +199,7 @@
   margin-bottom: -70px !important;
   z-index: 9999 !important;
   left: -20px !important;
-  top: -35px !important;
+  top: -37px !important;
 }
 .callButtonStyle {
   text-align: center !important;
@@ -222,10 +222,9 @@
   font-weight: bold !important;
 }
 .numContainer input {
-  font-size: 29px !important;
+  font-size:  27px !important;
   text-align: center !important;
   height: 50px !important;
-
   padding: 10px !important;
 }
 
