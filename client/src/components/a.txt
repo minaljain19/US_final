@@ -1,0 +1,108 @@
+  function handleFilterFields() {
+    if (searchDataOfCaller.length == 0 && searchDataOfDate.length == 0) {
+      setState((prevState) => ({
+        ...prevState,
+        filterCallsData: callData,
+      }));
+    } else {
+      const hasNumber = /\d/;
+      if (searchDataOfCaller) {
+        if (hasNumber.test(searchDataOfCaller)) {
+          const newList = callData?.filter((item) =>
+            item.to.includes(searchDataOfCaller)
+          );
+          const callIdsInNewList = newList.map((item) => item.callId);
+          const filteredCallData = callData.filter((item) =>
+            callIdsInNewList.includes(item.callId)
+          );
+
+          if (searchDataOfDate.length > 0) {
+            const da = searchDataOfDate.split("-");
+            if (da[1] < 10) {
+              da[1] = da[1].slice(1);
+            }
+            const newdat = da[1] + "/" + da[2] + "/" + da[0];
+
+            const newList = filteredCallData?.filter((item) =>
+              item.callTime.includes(newdat)
+            );
+            const callIdsInNewList = newList.map((item) => item.callId);
+            const filteredCallData1 = filteredCallData.filter((item) =>
+              callIdsInNewList.includes(item.callId)
+            );
+
+            setState((prevState) => ({
+              ...prevState,
+              filterCallsData: filteredCallData1,
+            }));
+          } else {
+            setState((prevState) => ({
+              ...prevState,
+              filterCallsData: filteredCallData,
+            }));
+          }
+        } else {
+          const newList = contactData?.filter((item) =>
+            item.contactName.includes(searchDataOfCaller)
+          );
+          console.log("Data1", newList);
+          const callToInNewList = newList.map((item) => "+1" + item.contactNo);
+
+          const filteredCallData = callData.filter((item) =>
+            callToInNewList.includes(item.to)
+          );
+          const callIdsToFilter = filteredCallData.map((item) => item.callId);
+
+          // Filter callData based on whether 'callId' is in callIdsToFilter
+          const allD = callData.filter((item) =>
+            callIdsToFilter.includes(item.callId)
+          );
+
+          if (searchDataOfDate.length > 0) {
+            const da = searchDataOfDate.split("-");
+            if (da[1] < 10) {
+              da[1] = da[1].slice(1);
+            }
+            const newdat = da[1] + "/" + da[2] + "/" + da[0];
+
+            const newList = allD?.filter((item) =>
+              item.callTime.includes(newdat)
+            );
+            const callIdsInNewList = newList.map((item) => item.callId);
+            const filteredCallData1 = allD.filter((item) =>
+              callIdsInNewList.includes(item.callId)
+            );
+
+            setState((prevState) => ({
+              ...prevState,
+              filterCallsData: filteredCallData1,
+            }));
+          } else {
+            setState((prevState) => ({
+              ...prevState,
+              filterCallsData: filteredCallData,
+            }));
+          }
+        }
+      } else {
+        const da = searchDataOfDate.split("-");
+        if (da[1] < 10) {
+          da[1] = da[1].slice(1);
+        }
+        const newdat = da[1] + "/" + da[2] + "/" + da[0];
+
+        const newList = callData?.filter((item) =>
+          item.callTime.includes(newdat)
+        );
+        const callIdsInNewList = newList.map((item) => item.callId);
+        const filteredCallData = callData.filter((item) =>
+          callIdsInNewList.includes(item.callId)
+        );
+
+        setState((prevState) => ({
+          ...prevState,
+          filterCallsData: filteredCallData,
+        }));
+      }
+    }
+  }

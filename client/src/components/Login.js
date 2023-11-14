@@ -1,16 +1,25 @@
 import React from "react";
 import Grid from "@mui/material/Grid";
-import AppBar from "@mui/material/AppBar";
-import Box from "@mui/material/Box";
-import Toolbar from "@mui/material/Toolbar";
 import { connect } from "react-redux";
 import swal from "sweetalert";
 import CustomTextField from "./CustomTextField";
-import { bindActionCreators } from "redux";
-import { useSelector, useDispatch } from "react-redux";
-import { userRegis, getData, userLogin } from "../Action";
-import "../App.css";
 import TextField from "@mui/material/TextField";
+import { bindActionCreators } from "redux";
+import InputAdornment from "@mui/material/InputAdornment";
+import IconButton from "@mui/material/IconButton";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import Box from "@mui/material/Box";
+import {
+  userRegis,
+  getData,
+  goLoginn,
+  userLogin,
+  resetPassword,
+  setError,
+  userUpdatePass,
+} from "../Action";
+import "../App.css";
 import { useState, useEffect } from "react";
 import Button from "@mui/material/Button";
 import Header from "./Header";
@@ -18,83 +27,243 @@ import { useNavigate } from "react-router-dom";
 import { Typography } from "@mui/material";
 function Login(props) {
   const notifySign = () => swal("Sign Up SuccessFully", "success");
-  // const notifyError = () => swal("Password Not matched", "", { icon: "error" });
   const navigate = useNavigate();
   const {
     userRegis,
+    setError,
+    resetPassword,
+    userUpdatePass,
     userLogin,
     getData,
-    list,
-    apidata,
+    goLoginn,
     userTypeLogin,
     error,
+    reset,
+    resetData,
     status,
+    nameError,
+    passError,
+    mobError,
+    allError,
   } = props;
-  const initialData = {
+
+  const [state, setState] = useState({
     data: {
       username: "",
       email: "",
       mobile: "",
       password: "",
+      cPassword: "",
+    },
+    fData: {
+      fEmail: "",
+      fPass: "",
+      fCPass: "",
     },
     lgData: {
       email1: "",
       password1: "",
     },
+    emailErr: "",
     nameError: "",
+    mobError: "",
     passError: "",
+    allError: "",
     login: "true",
-  };
-  const [state, setState] = useState(initialData);
-  const { username, email, mobile, password } = state.data;
+    resetPassErr: "",
+    showLoginPass: false,
+    showSignPass: false,
+    showSignCPass: false,
+    showForgotPass: false,
+    showForgotCPass: false,
+  });
+  const {
+    login,
+    resetPassErr,
+    showLoginPass,
+    showSignCPass,
+    showSignPass,
+    showForgotPass,
+    showForgotCPass,
+  } = state;
+  const { username, email, mobile, password, cPassword } = state.data;
   const { email1, password1 } = state.lgData;
+  const { fEmail, fPass, fCPass } = state.fData;
+
   function signUp() {
+    setError()
     setState((prevState) => ({
       ...prevState,
       login: "false",
     }));
   }
+  function forgotPass() {
+    setError()
+    setState((prevState) => ({
+      ...prevState,
+      login: "forgot",
+      lgData: {
+        email1: "",
+        password1: "",
+      },
+      fData: {
+        fEmail: "",
+        fPass: "",
+        fCPass: "",
+      },
+    }));
+  }
+
   function loginFun() {
     setState((prevState) => ({
       ...prevState,
       login: "true",
+      allError: "",
+      nameError: "",
+      passError: "",
+      mobError: "",
     }));
+    goLoginn();
   }
   function loginUser() {
-    userLogin(state.lgData);
+    userLogin({ email1, password1 });
+  }
+  async function changePass() {
+    if (fCPass != fPass) {
+      setState((prevState) => ({
+        ...prevState,
+        resetPassErr: "Password must be same",
+      }));
+    } else if (fPass.length !== 8) {
+      setState((prevState) => ({
+        ...prevState,
+        resetPassErr: "password must be 8 character",
+      }));
+    } else {
+      setState((prevState) => ({
+        ...prevState,
+        resetPassErr: "",
+      }));
+      await userUpdatePass({ fEmail, fPass });
+    }
   }
   async function submited() {
     var hasNumber = /\d/;
-    if (hasNumber.test(state.data.username)) {
+    const hasAlphbet = /[a-zA-Z]/;
+    if (username === "" || mobile === "" || password === "" || email == "") {
+      setState((prevState) => ({
+        ...prevState,
+        allError: "Please Fill all the fields",
+        nameError: "",
+        passError: "",
+        mobError: "",
+      }));
+    } else if (hasNumber.test(username)) {
+      setError();
       setState((prevState) => ({
         ...prevState,
         nameError: "Name does not contain numbers",
         passError: "",
+        mobError: "",
+        allError: "",
       }));
-    } else if (state.data.password.length != 8) {
+    } else if (hasAlphbet.test(mobile)) {
+      setError();
+      setState((prevState) => ({
+        ...prevState,
+        mobError: "mobile no does not contain alphabet",
+        nameError: "",
+        passError: "",
+        allError: "",
+      }));
+    } else if (mobile.length != 10) {
+      setError();
+      setState((prevState) => ({
+        ...prevState,
+        mobError: "Mobile No. must be 10 digits",
+        nameError: "",
+        passError: "",
+        allError: "",
+      }));
+    } else if (password.length != 8) {
+      setError();
       setState((prevState) => ({
         ...prevState,
         passError: "password must be 8 char length",
         nameError: "",
+        mobError: "",
+        allError: "",
+      }));
+    } else if (password != cPassword) {
+      setError();
+      setState((prevState) => ({
+        ...prevState,
+        passError: "Password must be same",
+        nameError: "",
+        mobError: "",
+        allError: "",
       }));
     } else {
       setState((prevState) => ({
         ...prevState,
         nameError: "",
         passError: "",
+        mobError: "",
+        allError: "",
       }));
-      console.log(state.data);
-      await userRegis(state.data);
+      await userRegis({ username, email, mobile, password });
     }
   }
-  const handlerLoginName = (e) => {
+
+  const handlerEmailForgot = (e) => {
     const { name, value } = e.target;
     setState((prevState) => ({
       ...prevState,
-      lgData: {
-        ...prevState.lgData,
+      fData: {
+        ...state.fData,
         [name]: value,
       },
+    }));
+  };
+  const handlerLoginName = (e) => {
+    setError();
+    const { name, value } = e.target;
+
+    setState((prevState) => ({
+      ...prevState,
+      lgData: {
+        ...state.lgData,
+        [name]: value,
+      },
+    }));
+  };
+  console.log(userTypeLogin);
+  const resetP = () => {
+    var chkEmail = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i;
+    if (fEmail !== "") {
+      if (chkEmail.test(fEmail)) {
+        setState((prevState) => ({
+          ...prevState,
+          emailErr: "",
+        }));
+        resetPassword(fEmail);
+      } else {
+        setState((prevState) => ({
+          ...prevState,
+          emailErr: "Not Valid url",
+        }));
+      }
+    } else {
+      setState((prevState) => ({
+        ...prevState,
+        emailErr: "please Enter Email",
+      }));
+    }
+  };
+  const handleTogglePasswordVisibility = (data, val) => {
+    setState((prevState) => ({
+      ...prevState,
+      [data]: !val,
     }));
   };
   const handlerName = (e) => {
@@ -107,118 +276,333 @@ function Login(props) {
       },
     }));
   };
-  console.log("user Type", userTypeLogin);
+
   if (userTypeLogin[0]?._id) {
     navigate("/home");
   }
 
   useEffect(() => {
-    if (error) {
-    } else {
-      getData();
-      setState(
-        (prevState) => ({
-          ...prevState,
-          data: {
-            username: "",
-            email: "",
-            mobile: "",
-            password: "",
-          },
-        }),
-        notifySign()
-      );
-    }
-  }, [error]);
-  useEffect(() => {
     getData();
   }, []);
+  useEffect(() => {
+    console.log(reset);
+  }, [reset]);
+
+  useEffect(() => {
+    if (resetData.length == 1) {
+      setState((prevState) => ({
+        ...prevState,
+        login: "true",
+      }));
+    }
+  }, [resetData]);
   return (
     <>
       <Grid container className="mainBox">
-        <Header />
+      <Box className="header" sx={{ flexGrow: 1 }}>
+        <Header clsName="appBar"/>
+        </Box>
         <Grid sm="12" md="12" xs="12" container className="loginBox1">
-          {state.login != "false" ? (
+          {login == "true" ? (
             <Grid sm="6" md="3.4" xs="8" className="loginBox12">
               <Typography variant="h5" className="loginName">
-                Login
+                Sign In
               </Typography>
               <CustomTextField
                 name="email1"
-                placeholder="Enter Email here"
+                placeholder="Enter Email Id"
                 value={email1}
                 onChange={handlerLoginName}
                 fullWidth
               />
 
-              <CustomTextField
-                onChange={handlerLoginName}
-                name="password1"
-                value={password1}
-                placeholder="Password"
+              <TextField
+                autoComplete="off"
                 fullWidth
-              />
+                placeholder="Enter Password"
+                type={showLoginPass ? "text" : "password"}
+                value={password1}
+                name="password1"
+                onChange={handlerLoginName}
+                InputLabelProps={{ shrink: true }}
+                variant="filled"
+                className="inputButton"
+                sx={{ mb: "10px" }}
+                InputProps={{
+                  disableUnderline: true,
 
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() =>
+                          handleTogglePasswordVisibility(
+                            "showLoginPass",
+                            showLoginPass
+                          )
+                        }
+                        value="showLoginPass"
+                      >
+                        {showLoginPass ? <Visibility /> : <VisibilityOff />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <Typography onClick={forgotPass}>
+                <Button>Forgot Password?</Button>
+              </Typography>
               {userTypeLogin[0]?.result == "not found" ? (
-                <b>Email and password set Not correct</b>
-              ) : (
-                <></>
-              )}
+                <Typography className="errorMsg">
+                  Email and password not correct
+                </Typography>
+              ) : null}
               {userTypeLogin[0]?.result == "enter" ? (
-                <b>Please fill all the fields</b>
-              ) : (
-                <></>
-              )}
+                <Typography className="errorMsg">
+                  Please fill all the fields
+                </Typography>
+              ) : null}
               <Button
                 variant="contained"
                 className="loginButton"
                 onClick={loginUser}
                 fullWidth
               >
-                Login
+                Sign In
               </Button>
               <Typography className="signUp">
                 Don't have an account?{" "}
                 <Button onClick={signUp}> Sign up </Button>
               </Typography>
             </Grid>
+          ) : login == "forgot" ? (
+            <Grid sm="6" md="3.4" xs="8" className="loginBox14">
+              <Typography>
+                Forgot your account’s password? Enter your email address.
+              </Typography>
+
+              <CustomTextField
+                placeholder="Enter Email Id"
+                fullWidth
+                name="fEmail"
+                value={fEmail}
+                onChange={handlerEmailForgot}
+              />
+
+              {state.emailErr ? <>{state.emailErr}</> : null}
+              {reset == "False" ? (
+                <>Account not Registerd</>
+              ) : reset == "True" ? (
+                setState((prevState) => ({
+                  ...prevState,
+                  login: "forgotPass",
+                }))
+              ) : null}
+              <Button
+                variant="contained"
+                color="error"
+                className="loginButton"
+                fullWidth
+                onClick={resetP}
+              >
+                Submit
+              </Button>
+              <Typography className="signUp">
+                If you don't want Forgot password
+                <Button onClick={loginFun}>Sign In </Button>
+              </Typography>
+            </Grid>
+          ) : login == "forgotPass" ? (
+            <Grid sm="6" md="3.4" xs="8" className="loginBox14">
+              <TextField
+                autoComplete="off"
+                fullWidth
+                placeholder="Enter Password"
+                type={showForgotPass ? "text" : "password"}
+                value={fPass}
+                name="fPass"
+                onChange={handlerEmailForgot}
+                InputLabelProps={{ shrink: true }}
+                variant="filled"
+                className="inputButton"
+                sx={{ mb: "10px" }}
+                InputProps={{
+                  disableUnderline: true,
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() =>
+                          handleTogglePasswordVisibility(
+                            "showForgotPass",
+                            showForgotPass
+                          )
+                        }
+                      >
+                        {showForgotPass ? <Visibility /> : <VisibilityOff />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                fullWidth
+                placeholder="Confirm Password"
+                autoComplete="off"
+                type={showForgotCPass ? "text" : "password"}
+                value={fCPass}
+                name="fCPass"
+                onChange={handlerEmailForgot}
+                InputLabelProps={{ shrink: true }}
+                variant="filled"
+                className="inputButton"
+                sx={{ mb: "10px" }}
+                InputProps={{
+                  disableUnderline: true,
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() =>
+                          handleTogglePasswordVisibility(
+                            "showForgotCPass",
+                            showForgotCPass
+                          )
+                        }
+                      >
+                        {showForgotCPass ? <Visibility /> : <VisibilityOff />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              {resetPassErr ? (
+                <Typography className="errorMsg">{resetPassErr}</Typography>
+              ) : null}
+
+              <Button
+                variant="contained"
+                color="error"
+                className="loginButton"
+                fullWidth
+                onClick={changePass}
+              >
+                Change Password
+              </Button>
+
+              <Typography className="signUp">
+                If you don't want Forgot password
+                <Button onClick={loginFun}>Sign In </Button>
+              </Typography>
+            </Grid>
           ) : (
             <Grid sm="6" md="3.4" xs="8" className="loginBox13">
               <Typography variant="h5" className="loginName">
-                Sign In
+                Sign Up
               </Typography>
+              {state.allError ? (
+                <Typography className="errorMsg">{state.allError}</Typography>
+              ) : (
+                <></>
+              )}
               <CustomTextField
                 name="username"
-                placeholder="Enter Name here"
+                placeholder="Enter Full Name"
                 onChange={handlerName}
                 fullWidth
                 value={username}
               />
-              {state.nameError ? <>{state.nameError}</> : <></>}
+              {state.nameError ? (
+                <Typography className="errorMsg">{state.nameError}</Typography>
+              ) : (
+                <></>
+              )}
               <CustomTextField
-                placeholder="Enter Mobile No"
+                placeholder="Enter Phone No."
                 value={mobile}
                 onChange={handlerName}
                 name="mobile"
                 fullWidth
               />
-
+              {state.mobError ? (
+                <Typography className="errorMsg">{state.mobError}</Typography>
+              ) : (
+                <></>
+              )}
               <CustomTextField
-                placeholder="Enter Email here"
+                placeholder="Enter Email Id"
                 fullWidth
                 name="email"
                 value={email}
                 onChange={handlerName}
               />
-              <CustomTextField
-                placeholder="Password"
+              <TextField
+                fullWidth
+                autoComplete="off"
+                placeholder="Enter Password"
+                type={showSignPass ? "text" : "password"}
                 value={password}
                 name="password"
                 onChange={handlerName}
-                fullWidth
+                InputLabelProps={{ shrink: true }}
+                variant="filled"
+                className="inputButton"
+                sx={{ mb: "10px" }}
+                InputProps={{
+                  disableUnderline: true,
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() =>
+                          handleTogglePasswordVisibility(
+                            "showSignPass",
+                            showSignPass
+                          )
+                        }
+                      >
+                        {showSignPass ? <Visibility /> : <VisibilityOff />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
               />
-              {state.passError ? <>{state.passError}</> : <></>}
-              {error ? <b>{error}</b> : <b></b>}
+              <TextField
+                fullWidth
+                autoComplete="off"
+                placeholder="Confirm Password"
+                type={showSignCPass ? "text" : "password"}
+                value={cPassword}
+                name="cPassword"
+                onChange={handlerName}
+                InputLabelProps={{ shrink: true }}
+                variant="filled"
+                className="inputButton"
+                sx={{ mb: "10px" }}
+                InputProps={{
+                  disableUnderline: true,
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() =>
+                          handleTogglePasswordVisibility(
+                            "showSignCPass",
+                            showSignCPass
+                          )
+                        }
+                      >
+                        {showSignCPass ? <Visibility /> : <VisibilityOff />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              {state.passError ? (
+                <Typography className="errorMsg">{state.passError}</Typography>
+              ) : (
+                <></>
+              )}
+              {error ? (
+                <Typography className="errorMsg">{error}</Typography>
+              ) : (
+                <></>
+              )}
               <Button
                 variant="contained"
                 color="error"
@@ -226,11 +610,11 @@ function Login(props) {
                 fullWidth
                 onClick={submited}
               >
-                Sign In
+                Sign Up
               </Button>
               <Typography className="signUp">
                 Already have an account?{" "}
-                <Button onClick={loginFun}>Login </Button>
+                <Button onClick={loginFun}>Sign In </Button>
               </Typography>
             </Grid>
           )}
@@ -244,7 +628,9 @@ const mapStateToProps = (state) => {
     status: state?.user1?.status,
     apidata: state?.user1?.apidata,
     error: state?.user1?.error,
+    reset: state?.user1?.reset,
     userTypeLogin: state?.user1?.userTypeLogin,
+    resetData: state?.user1?.resetData,
   };
 };
 
@@ -254,6 +640,10 @@ const mapDispatchToProps = (dispatch) => {
       userRegis,
       getData,
       userLogin,
+      resetPassword,
+      userUpdatePass,
+      goLoginn,
+      setError,
     },
 
     dispatch
